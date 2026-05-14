@@ -41,6 +41,11 @@ const (
 	StatePaused
 )
 
+type Popup struct {
+	x, y int
+	text string
+}
+
 type Button struct {
 	x, y, w, h int
 	label      string
@@ -61,6 +66,7 @@ type Game struct {
 	gridWidth  int
 	gridHeight int
 	uiY2       int
+	popup      *Popup
 }
 
 func NewGame() *Game {
@@ -110,6 +116,9 @@ func (g *Game) initButtons() {
 			g.grid.Clear()
 			g.seedCount = 0
 		}},
+		{10, uiY2, 80, 40, "Back", func() {
+			g.grid.Undo()
+		}},
 		{460, uiY2, 110, 40, "Change Size", func() {
 			g.state = StateGridSizeSelection
 		}},
@@ -120,7 +129,7 @@ func (g *Game) initButtons() {
 				for x := 0; x < g.gridWidth; x++ {
 					density := 0.1 + rand.Float32()*(0.25-0.1)
 					if rand.Float32() < density { // 10% to 25% chance of being alive
-						g.grid.Set(x, y, true)
+						g.grid.SetAlive(x, y, true)
 						g.seedCount++
 					}
 				}
@@ -133,6 +142,7 @@ func (g *Game) Update() error {
 	mx, my := ebiten.CursorPosition()
 
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		g.popup = nil // Close popup on left click
 		if g.state == StateGridSizeSelection {
 			for i, t := range gridTemplates {
 				// Display buttons for templates: x=100, y=100 + i*60
@@ -159,15 +169,31 @@ func (g *Game) Update() error {
 		// Handle grid interaction
 		gx, gy := mx/characterSize, my/characterSize
 		if gx >= 0 && gx < g.gridWidth && gy >= 0 && gy < g.gridHeight {
-			if !g.grid.Get(gx, gy) {
-				g.grid.Set(gx, gy, true)
+			if !g.grid.GetAlive(gx, gy) {
+				g.grid.SetAlive(gx, gy, true)
 				if g.state == StateSeedSelection {
 					g.seedCount++
 				}
 			} else {
-				g.grid.Set(gx, gy, false)
+				g.grid.SetAlive(gx, gy, false)
 				if g.state == StateSeedSelection && g.seedCount > 0 {
 					g.seedCount--
+				}
+			}
+		}
+	}
+
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) {
+		g.popup = nil
+		gx, gy := mx/characterSize, my/characterSize
+		if gx >= 0 && gx < g.gridWidth && gy >= 0 && gy < g.gridHeight {
+			cell := g.grid.GetCell(gx, gy)
+			if cell != nil {
+				g.popup = &Popup{
+					x: mx,
+					y: my,
+					text: fmt.Sprintf("ID: %d\nType: %T\nDeathCount: %d",
+						cell.Character.GetID(), cell.Character, cell.DeathCount),
 				}
 			}
 		}
@@ -182,6 +208,12 @@ func (g *Game) Update() error {
 	}
 
 	return nil
+}
+
+func (g *Game) drawPopup(screen *ebiten.Image) {
+	if g.popup != nil {
+		ebitenutil.DebugPrintAt(screen, g.popup.text, g.popup.x, g.popup.y)
+	}
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
@@ -200,13 +232,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// Draw Grid (Ends at y=400)
 	for y := 0; y < g.gridHeight; y++ {
 		for x := 0; x < g.gridWidth; x++ {
-			character := g.grid.Cells[y*g.gridWidth+x]
-			r, gCol, b, a := character.Character.GetColor()
+			cell := g.grid.Cells[y*g.gridWidth+x]
+			r, gCol, b, a := cell.Character.GetColor()
 			c := color.RGBA{r, gCol, b, a}
-
-			if character.Character.IsHighlighted() {
-				c = color.RGBA{255, 255, 0, 255}
-			}
 
 			ebitenutil.DrawRect(screen, float64(x*characterSize), float64(y*characterSize), characterSize-1, characterSize-1, c)
 		}
@@ -233,6 +261,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	livecharacters := fmt.Sprintf("Alive: %d", g.grid.CountAlive())
 	ebitenutil.DebugPrintAt(screen, livecharacters, 150, g.uiY2+40)
+
+	g.drawPopup(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
