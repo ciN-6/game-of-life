@@ -10,7 +10,7 @@ Feature: Game of Life Simulation
       | 4 | 4 |
       | 4 | 5 |
       | 4 | 6 |
-    When the simulation steps once
+When the simulation steps once
     Then the following characters should be alive:
       | x | y |
       | 3 | 5 |

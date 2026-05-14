@@ -1,0 +1,8 @@
+# Binaries
+*.exe
+
+# IDE/Editor files
+.vscode/
+
+# Build artifacts
+dist/

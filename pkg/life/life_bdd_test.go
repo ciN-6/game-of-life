@@ -18,7 +18,7 @@ type simulationContext struct {
 
 func (c *simulationContext) aGridWithASingleLivingcharacterAt(x, y int) error {
 	c.grid = life.NewGrid(10, 10)
-	c.grid.Set(x, y, true)
+	c.grid.SetAlive(x, y, true)
 	return nil
 }
 
@@ -34,7 +34,7 @@ func (c *simulationContext) theSimulationStepsOnce() error {
 }
 
 func (c *simulationContext) thecharacterAtShouldBeDead(x, y int) error {
-	if c.grid.Get(x, y) {
+	if c.grid.GetAlive(x, y) {
 		return errors.New("expected character to be dead, but it is alive")
 	}
 	return nil
@@ -47,7 +47,7 @@ func (c *simulationContext) aGridWithLivingcharactersAt(table *godog.Table) erro
 		y := 0
 		fmt.Sscanf(row.Cells[0].Value, "%d", &x)
 		fmt.Sscanf(row.Cells[1].Value, "%d", &y)
-		c.grid.Set(x, y, true)
+		c.grid.SetAlive(x, y, true)
 	}
 	return nil
 }
@@ -58,7 +58,7 @@ func (c *simulationContext) theFollowingcharactersShouldBeAlive(table *godog.Tab
 		y := 0
 		fmt.Sscanf(row.Cells[0].Value, "%d", &x)
 		fmt.Sscanf(row.Cells[1].Value, "%d", &y)
-		if !c.grid.Get(x, y) {
+		if !c.grid.GetAlive(x, y) {
 			return fmt.Errorf("expected character (%d,%d) to be alive", x, y)
 		}
 	}
@@ -71,7 +71,7 @@ func (c *simulationContext) theFollowingcharactersShouldBeDead(table *godog.Tabl
 		y := 0
 		fmt.Sscanf(row.Cells[0].Value, "%d", &x)
 		fmt.Sscanf(row.Cells[1].Value, "%d", &y)
-		if c.grid.Get(x, y) {
+		if c.grid.GetAlive(x, y) {
 			return fmt.Errorf("expected character (%d,%d) to be dead", x, y)
 		}
 	}
@@ -94,15 +94,19 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 
 func (c *simulationContext) aGridWithAnUndeadcharacterAt(x, y int) error {
 	c.grid = life.NewGrid(10, 10)
-	undead := &characters.UndeadCharacter{BaseCharacter: characters.BaseCharacter{BaseCell: characters.BaseCell{Alive: true, Age: 5, UnderPop: 2, OverPop: 3, Repro: 3}}}
-	c.grid.Cells[y*10+x] = types.Cell{Character: undead}
+	undead := &characters.UndeadCharacter{BaseCharacter: characters.BaseCharacter{UnderPop: 2, OverPop: 3, Repro: 3}, WaitCounter: 0}
+	c.grid.Cells[y*10+x] = types.Cell{X: x, Y: y, DeathCount: 0, Character: undead}
 	return nil
 }
 
 func (c *simulationContext) thecharacterAtShouldBeUndead(x, y int) error {
-	char := c.grid.Cells[y*10+x].Character
+	cell := c.grid.Cells[y*10+x]
+	if cell.Character == nil {
+		return fmt.Errorf("no character at (%d,%d)", x, y)
+	}
+	char := cell.Character
 	if !char.IsUndead() {
-		return fmt.Errorf("expected undead at (%d,%d), but got type %T (IsUndead: %v, Alive: %v, Age: %d)", x, y, char, char.IsUndead(), char.IsAlive(), char.GetAge())
+		return fmt.Errorf("expected undead at (%d,%d), but got type %T (IsUndead: %v)", x, y, char, char.IsUndead())
 	}
 	return nil
 }
