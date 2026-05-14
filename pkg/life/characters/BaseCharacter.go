@@ -69,10 +69,17 @@ func (c *BaseCharacter) ApplyAction(effects []types.SpreadEffect, grid types.Gri
 func (c *BaseCharacter) NextState(neighbors int, grid types.Grid, x, y int) (types.Character, types.Cell) {
 	cell := *grid.GetCell(x, y)
 	
-	// Simplified logic for now
+	// Reproduction logic: if exactly 3 neighbors, become alive
 	if neighbors == c.Repro {
 		return &LivingCharacter{BaseCharacter: *c}, cell
 	}
+
+	// Persistent death state handling
+	cell.DeathCount++
+	if cell.DeathCount >= 5 {
+		return &UndeadCharacter{BaseCharacter: *c, WaitCounter: 0}, cell
+	}
+	
 	return c, cell
 }
 

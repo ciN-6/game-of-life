@@ -15,6 +15,7 @@ This skill guides Gemini CLI in producing high-quality, idiomatic Go code and fo
    - Project-specific standards (found in `GEMINI.md`)
    - Explicit error handling (no `panic`)
    - Descriptive variable names
+   - Do not use deprecated functions.
    - Adding Godoc comments
 3. **Generate Tests**: Create or update unit tests using Go's `testing` package.
    - Use table-driven tests for core logic.
@@ -26,6 +27,7 @@ This skill guides Gemini CLI in producing high-quality, idiomatic Go code and fo
 - Always favor readability and maintainability.
 - Keep functions small and focused.
 - Use explicit error handling for all operations.
+
 
 ## Testing Standards
 - Always create a test file alongside the implementation.

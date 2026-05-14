@@ -12,6 +12,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 const (
@@ -189,11 +190,19 @@ func (g *Game) Update() error {
 		if gx >= 0 && gx < g.gridWidth && gy >= 0 && gy < g.gridHeight {
 			cell := g.grid.GetCell(gx, gy)
 			if cell != nil {
-				g.popup = &Popup{
-					x: mx,
-					y: my,
-					text: fmt.Sprintf("ID: %d\nType: %T\nDeathCount: %d",
-						cell.Character.GetID(), cell.Character, cell.DeathCount),
+				if cell.Character == nil {
+					g.popup = &Popup{
+						x:    mx,
+						y:    my,
+						text: fmt.Sprintf("Death cell\nDeathCount: %d", cell.DeathCount),
+					}
+				} else {
+					g.popup = &Popup{
+						x: mx,
+						y: my,
+						text: fmt.Sprintf("ID: %d\nType: %T\nDeathCount: %d",
+							cell.Character.GetID(), cell.Character, cell.DeathCount),
+					}
 				}
 			}
 		}
@@ -212,7 +221,18 @@ func (g *Game) Update() error {
 
 func (g *Game) drawPopup(screen *ebiten.Image) {
 	if g.popup != nil {
-		ebitenutil.DebugPrintAt(screen, g.popup.text, g.popup.x, g.popup.y)
+		// Calculate size based on lines (approximate)
+		lines := 0
+		for _, char := range g.popup.text {
+			if char == '\n' {
+				lines++
+			}
+		}
+		lines++ // add one for the first line
+
+		width, height := 150, lines*15+10
+		vector.DrawFilledRect(screen, float32(g.popup.x), float32(g.popup.y), float32(width), float32(height), color.RGBA{50, 50, 50, 200}, false)
+		ebitenutil.DebugPrintAt(screen, g.popup.text, g.popup.x+5, g.popup.y+5)
 	}
 }
 
@@ -223,7 +243,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		ebitenutil.DebugPrintAt(screen, "Select Grid Size:", 100, 50)
 		for i, t := range gridTemplates {
 			// Draw selection "combobox" elements
-			ebitenutil.DrawRect(screen, 100, float64(100+i*60), 200, 40, color.RGBA{80, 80, 80, 255})
+			vector.DrawFilledRect(screen, 100, float32(100+i*60), 200, 40, color.RGBA{80, 80, 80, 255}, false)
 			ebitenutil.DebugPrintAt(screen, t.Name, 120, 110+i*60)
 		}
 		return
@@ -233,16 +253,22 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for y := 0; y < g.gridHeight; y++ {
 		for x := 0; x < g.gridWidth; x++ {
 			cell := g.grid.Cells[y*g.gridWidth+x]
-			r, gCol, b, a := cell.Character.GetColor()
-			c := color.RGBA{r, gCol, b, a}
 
-			ebitenutil.DrawRect(screen, float64(x*characterSize), float64(y*characterSize), characterSize-1, characterSize-1, c)
+			var c color.RGBA
+			if cell.Character == nil {
+				c = color.RGBA{0, 0, 0, 255} // Black for empty
+			} else {
+				r, gCol, b, a := cell.Character.GetColor()
+				c = color.RGBA{r, gCol, b, a}
+			}
+
+			vector.DrawFilledRect(screen, float32(x*characterSize), float32(y*characterSize), float32(characterSize-1), float32(characterSize-1), c, false)
 		}
 	}
 
 	// Draw Buttons
 	for _, b := range g.buttons {
-		ebitenutil.DrawRect(screen, float64(b.x), float64(b.y), float64(b.w), float64(b.h), color.RGBA{100, 100, 100, 255})
+		vector.DrawFilledRect(screen, float32(b.x), float32(b.y), float32(b.w), float32(b.h), color.RGBA{100, 100, 100, 255}, false)
 		ebitenutil.DebugPrintAt(screen, b.label, b.x+10, b.y+10)
 	}
 

@@ -118,11 +118,12 @@ func TestRules(t *testing.T) {
 func TestCustomRules(t *testing.T) {
 	// Test reproduction with 2 neighbors instead of 3
 	g := NewGrid(3, 3)
-	// Apply custom rule to the character at (1,1)
+	// Initialize character if nil
+	g.SetAlive(1, 1, false)
 	g.Cells[1*3+1].Character.SetRules(2, 3, 2)
 	g.SetAlive(0, 0, true)
 	g.SetAlive(1, 0, true)
-	g.SetAlive(1, 1, false) // Ensure it's not alive
+	
 	// (1,1) has 2 neighbors, should become alive because Repro = 2
 	g.Step()
 	if !g.GetAlive(1, 1) {
@@ -131,10 +132,11 @@ func TestCustomRules(t *testing.T) {
 
 	// Test survival with 1 neighbor
 	g = NewGrid(3, 3)
+	// Initialize character if nil
+	g.SetAlive(1, 1, true)
 	// Apply custom rule to the character at (1,1)
 	g.Cells[1*3+1].Character.SetRules(1, 3, 3)
 	g.SetAlive(0, 0, true)
-	g.SetAlive(1, 1, true)
 	// (1,1) has 1 neighbor (0,0), should survive because UnderPop = 1
 	g.Step()
 	if !g.GetAlive(1, 1) {
@@ -143,9 +145,10 @@ func TestCustomRules(t *testing.T) {
 
 	// Test overpopulation with 4 neighbors (survival)
 	g = NewGrid(3, 3)
+	// Initialize character if nil
+	g.SetAlive(1, 1, true)
 	// Apply custom rule to the character at (1,1)
 	g.Cells[1*3+1].Character.SetRules(2, 4, 3)
-	g.SetAlive(1, 1, true)
 	g.SetAlive(0, 0, true)
 	g.SetAlive(1, 0, true)
 	g.SetAlive(2, 0, true)
