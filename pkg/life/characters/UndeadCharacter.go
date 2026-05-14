@@ -6,26 +6,26 @@ import (
 
 // UndeadCharacter represents an undead entity that persists and spreads across generations.
 type UndeadCharacter struct {
-	ID          int
-	UnderPop    int
-	OverPop     int
-	Repro       int
-	WaitCounter int
+	ID       int
+	UnderPop int
+	OverPop  int
+	Repro    int
+	Age      int
 }
 
-func (c *UndeadCharacter) GetID() int { return c.ID }
-func (c *UndeadCharacter) IsUndead() bool { return true }
-func (c *UndeadCharacter) GetRules() (int, int, int) { return c.UnderPop, c.OverPop, c.Repro }
-func (c *UndeadCharacter) SetRules(u, o, r int) { c.UnderPop = u; c.OverPop = o; c.Repro = r }
+func (c *UndeadCharacter) GetID() int                             { return c.ID }
+func (c *UndeadCharacter) IsUndead() bool                         { return true }
+func (c *UndeadCharacter) GetRules() (int, int, int)              { return c.UnderPop, c.OverPop, c.Repro }
+func (c *UndeadCharacter) SetRules(u, o, r int)                   { c.UnderPop = u; c.OverPop = o; c.Repro = r }
 func (c *UndeadCharacter) GetColor() (uint8, uint8, uint8, uint8) { return 255, 0, 0, 255 }
 
 func (c *UndeadCharacter) Clone() types.Character {
 	return &UndeadCharacter{
-		ID:          c.ID,
-		UnderPop:    c.UnderPop,
-		OverPop:     c.OverPop,
-		Repro:       c.Repro,
-		WaitCounter: c.WaitCounter,
+		ID:       c.ID,
+		UnderPop: c.UnderPop,
+		OverPop:  c.OverPop,
+		Repro:    c.Repro,
+		Age:      c.Age,
 	}
 }
 
@@ -40,18 +40,18 @@ func (c *UndeadCharacter) ApplyAction(effects []types.SpreadEffect, grid types.G
 
 func (c *UndeadCharacter) NextState(neighbors int, grid types.Grid, x, y int) (types.Character, types.Cell) {
 	cell := *grid.GetCell(x, y)
-	
-	newWait := c.WaitCounter - 1
+
+	newWait := c.Age - 1
 	if newWait < 0 {
 		newWait = 0
 	}
 
 	return &UndeadCharacter{
-		ID:          c.ID,
-		UnderPop:    c.UnderPop,
-		OverPop:     c.OverPop,
-		Repro:       c.Repro,
-		WaitCounter: newWait,
+		ID:       c.ID,
+		UnderPop: c.UnderPop,
+		OverPop:  c.OverPop,
+		Repro:    c.Repro,
+		Age:      newWait,
 	}, cell
 }
 
@@ -63,7 +63,7 @@ func (c *UndeadCharacter) PrepareAction(grid types.Grid, x, y int) []types.Sprea
 		if target != nil {
 			if _, ok := target.Character.(*LivingCharacter); ok {
 				victimID := target.Character.GetID()
-				
+
 				newCell := types.Cell{
 					X:          nx,
 					Y:          ny,

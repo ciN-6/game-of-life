@@ -20,14 +20,16 @@ type Board struct {
 	width, height int
 	Cells         []types.Cell
 	history       [][]types.Cell
+	activeCells   []int
 }
 
 // NewGrid creates a new Board with the given dimensions.
 func NewGrid(width, height int) *Board {
 	board := &Board{
-		width:  width,
-		height: height,
-		Cells:  make([]types.Cell, width*height),
+		width:       width,
+		height:      height,
+		Cells:       make([]types.Cell, width*height),
+		activeCells: []int{},
 	}
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
@@ -49,12 +51,14 @@ func (board *Board) SetAlive(x, y int, alive bool) {
 		return
 	}
 	idx := y*board.width + x
-	
+
 	// Default rules if no character exists
 	u, o, r := 2, 3, 3
 	if board.Cells[idx].Character != nil {
 		u, o, r = board.Cells[idx].Character.GetRules()
 	}
+
+	hadCharacter := board.Cells[idx].Character != nil
 
 	if alive {
 		board.Cells[idx] = types.Cell{
@@ -63,12 +67,36 @@ func (board *Board) SetAlive(x, y int, alive bool) {
 			DeathCount: board.Cells[idx].DeathCount,
 			Character:  &characters.LivingCharacter{ID: nextID(), UnderPop: u, OverPop: o, Repro: r},
 		}
+		if !hadCharacter {
+			board.activeCells = append(board.activeCells, idx)
+		}
 	} else {
 		board.Cells[idx] = types.Cell{
 			X:          x,
 			Y:          y,
 			DeathCount: board.Cells[idx].DeathCount,
 			Character:  nil,
+		}
+		if hadCharacter {
+			board.removeFromActiveCells(idx)
+		}
+	}
+}
+
+func (board *Board) removeFromActiveCells(idx int) {
+	for i, v := range board.activeCells {
+		if v == idx {
+			board.activeCells = append(board.activeCells[:i], board.activeCells[i+1:]...)
+			break
+		}
+	}
+}
+
+func (board *Board) updateActiveCells() {
+	board.activeCells = []int{}
+	for i, cell := range board.Cells {
+		if cell.Character != nil {
+			board.activeCells = append(board.activeCells, i)
 		}
 	}
 }
@@ -103,25 +131,33 @@ func (board *Board) Step() {
 	// Save current state to history before modifying cells
 	board.saveSnapshot()
 
-	// 1. Collect PrepareAction Effects
+	intent := board.collectIntent()
+	applied := board.applyActions(intent)
+	nextCells, nextActiveCells := board.calculateNextState(applied)
+	board.Cells = nextCells
+	board.activeCells = nextActiveCells
+}
+
+func (board *Board) collectIntent() map[int][]types.SpreadEffect {
 	effects := make(map[int][]types.SpreadEffect)
-	for y := 0; y < board.height; y++ {
-		for x := 0; x < board.width; x++ {
-			cell := board.Cells[y*board.width+x]
-			if cell.Character == nil {
-				continue
-			}
-			cellEffects := cell.Character.PrepareAction(board, x, y)
-			for _, e := range cellEffects {
-				if e.TargetX >= 0 && e.TargetX < board.width && e.TargetY >= 0 && e.TargetY < board.height {
-					idx := e.TargetY*board.width + e.TargetX
-					effects[idx] = append(effects[idx], e)
-				}
+	for _, idx := range board.activeCells {
+		cell := board.Cells[idx]
+		// Character should not be nil if activeCells is maintained correctly
+		if cell.Character == nil {
+			continue
+		}
+		cellEffects := cell.Character.PrepareAction(board, cell.X, cell.Y)
+		for _, e := range cellEffects {
+			if e.TargetX >= 0 && e.TargetX < board.width && e.TargetY >= 0 && e.TargetY < board.height {
+				targetIdx := e.TargetY*board.width + e.TargetX
+				effects[targetIdx] = append(effects[targetIdx], e)
 			}
 		}
 	}
+	return effects
+}
 
-	// 2. Apply Action
+func (board *Board) applyActions(effects map[int][]types.SpreadEffect) []types.Cell {
 	applied := make([]types.Cell, len(board.Cells))
 	for i := range board.Cells {
 		char := board.Cells[i].Character
@@ -146,9 +182,12 @@ func (board *Board) Step() {
 			Character:  newChar,
 		}
 	}
+	return applied
+}
 
-	// 3. Calculate Next State
+func (board *Board) calculateNextState(applied []types.Cell) ([]types.Cell, []int) {
 	next := make([]types.Cell, len(board.Cells))
+	nextActiveCells := []int{}
 	for y := 0; y < board.height; y++ {
 		for x := 0; x < board.width; x++ {
 			idx := y*board.width + x
@@ -156,10 +195,10 @@ func (board *Board) Step() {
 			char := applied[idx].Character
 			var nextChar types.Character
 			var nextCell types.Cell
-			
+
 			if char == nil {
-				// Potential reproduction
-				if neighbors == 3 {
+				// Reproduction rule: if 2-3 neighbors, spawn a new cell
+				if neighbors >= 2 && neighbors <= 3 {
 					// Use a new character for the new life form
 					nextChar = &characters.LivingCharacter{ID: nextID(), UnderPop: 2, OverPop: 3, Repro: 3}
 				} else {
@@ -170,16 +209,19 @@ func (board *Board) Step() {
 				// Character exists: handle state and death transition
 				nextChar, nextCell = char.NextState(neighbors, board, x, y)
 			}
-			
+
 			next[idx] = types.Cell{
 				X:          x,
 				Y:          y,
 				DeathCount: nextCell.DeathCount,
 				Character:  nextChar,
 			}
+			if nextChar != nil {
+				nextActiveCells = append(nextActiveCells, idx)
+			}
 		}
 	}
-	board.Cells = next
+	return next, nextActiveCells
 }
 
 // saveSnapshot saves the current board state to history.
@@ -203,6 +245,7 @@ func (board *Board) Undo() {
 	lastIdx := len(board.history) - 1
 	board.Cells = board.history[lastIdx]
 	board.history = board.history[:lastIdx]
+	board.updateActiveCells()
 }
 
 // GetCell returns the cell structure at the given coordinates.
@@ -232,6 +275,7 @@ func (board *Board) Clear() {
 			}
 		}
 	}
+	board.activeCells = []int{}
 }
 
 // CountAlive returns the total count of live cells on the board.

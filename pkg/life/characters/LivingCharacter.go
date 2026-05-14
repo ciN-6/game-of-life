@@ -20,10 +20,10 @@ func (c *LivingCharacter) PrepareAction(grid types.Grid, x, y int) []types.Sprea
 	// Simple implementation
 	return nil
 }
-func (c *LivingCharacter) GetID() int { return c.ID }
-func (c *LivingCharacter) IsUndead() bool { return false }
+func (c *LivingCharacter) GetID() int                { return c.ID }
+func (c *LivingCharacter) IsUndead() bool            { return false }
 func (c *LivingCharacter) GetRules() (int, int, int) { return c.UnderPop, c.OverPop, c.Repro }
-func (c *LivingCharacter) SetRules(u, o, r int) { c.UnderPop = u; c.OverPop = o; c.Repro = r }
+func (c *LivingCharacter) SetRules(u, o, r int)      { c.UnderPop = u; c.OverPop = o; c.Repro = r }
 
 func (c *LivingCharacter) ApplyAction(effects []types.SpreadEffect, grid types.Grid, x, y int) (types.Character, types.Cell) {
 	// If fleeing, apply the effect
@@ -47,26 +47,25 @@ func (c *LivingCharacter) Clone() types.Character {
 func (c *LivingCharacter) NextState(neighbors int, grid types.Grid, x, y int) (types.Character, types.Cell) {
 	cell := *grid.GetCell(x, y)
 
-	// Survival logic
-	isAlive := neighbors >= c.UnderPop && neighbors <= c.OverPop
-	if isAlive {
-		cell.DeathCount = 0 
+	// Survival logic: 2-3 neighbors
+	if neighbors >= 2 && neighbors <= 3 {
+		cell.DeathCount = 0
 		return c, cell
 	}
 
-	// Death logic
+	// Death logic (Underpopulation: <=1, Overpopulation: >=4)
 	cell.DeathCount++
 	if cell.DeathCount >= 5 {
 		return &UndeadCharacter{
-			ID:          c.ID,
-			UnderPop:    c.UnderPop,
-			OverPop:     c.OverPop,
-			Repro:       c.Repro,
-			WaitCounter: 0,
+			ID:       c.ID,
+			UnderPop: 2,
+			OverPop:  3,
+			Repro:    3,
+			Age:      0,
 		}, cell
 	}
 
-	// Return nil for "dead" cell instead of BaseCharacter
+	// Return nil for "dead" cell
 	cell.Character = nil
 	return nil, cell
 }
