@@ -61,14 +61,14 @@ func (board *Board) SetAlive(x, y int, alive bool) {
 			X:          x,
 			Y:          y,
 			DeathCount: board.Cells[idx].DeathCount,
-			Character:  &characters.LivingCharacter{BaseCharacter: characters.BaseCharacter{ID: nextID(), UnderPop: u, OverPop: o, Repro: r}},
+			Character:  &characters.LivingCharacter{ID: nextID(), UnderPop: u, OverPop: o, Repro: r},
 		}
 	} else {
 		board.Cells[idx] = types.Cell{
 			X:          x,
 			Y:          y,
 			DeathCount: board.Cells[idx].DeathCount,
-			Character:  &characters.BaseCharacter{ID: nextID(), UnderPop: u, OverPop: o, Repro: r},
+			Character:  nil,
 		}
 	}
 }
@@ -157,14 +157,11 @@ func (board *Board) Step() {
 			var nextChar types.Character
 			var nextCell types.Cell
 			
-			// Default character rules for empty cells
-			var defaultChar = &characters.BaseCharacter{ID: nextID(), UnderPop: 2, OverPop: 3, Repro: 3}
-			
 			if char == nil {
 				// Potential reproduction
 				if neighbors == 3 {
 					// Use a new character for the new life form
-					nextChar = &characters.LivingCharacter{BaseCharacter: *defaultChar}
+					nextChar = &characters.LivingCharacter{ID: nextID(), UnderPop: 2, OverPop: 3, Repro: 3}
 				} else {
 					nextChar = nil
 				}
@@ -172,11 +169,6 @@ func (board *Board) Step() {
 			} else {
 				// Character exists: handle state and death transition
 				nextChar, nextCell = char.NextState(neighbors, board, x, y)
-				
-				// Handle potential death-to-undead transition if not handled by NextState
-				if _, isBase := nextChar.(*characters.BaseCharacter); isBase && nextCell.DeathCount >= 5 {
-					nextChar = &characters.UndeadCharacter{BaseCharacter: *nextChar.(*characters.BaseCharacter), WaitCounter: 0}
-				}
 			}
 			
 			next[idx] = types.Cell{
