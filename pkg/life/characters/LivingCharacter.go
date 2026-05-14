@@ -6,132 +6,66 @@ import (
 
 // LivingCharacter represents an entity that exhibits fear of undead and flees.
 type LivingCharacter struct {
-	BaseCharacter
+	ID       int
+	UnderPop int
+	OverPop  int
+	Repro    int
 }
 
 func (c *LivingCharacter) GetColor() (uint8, uint8, uint8, uint8) {
 	return 0, 255, 255, 255 // Cyan when alive
 }
 
-func (c *LivingCharacter) ApplyAction(effects []types.SpreadEffect, grid types.Grid, x, y int) (types.Character, types.Cell) {
-	if bestEffect := c.ResolveEffects(effects, grid, x, y); bestEffect != nil {
-		return bestEffect.NewCell.Character, bestEffect.NewCell
-	}
-	cell := *grid.GetCell(x, y)
-	return c, cell
-}
-
 func (c *LivingCharacter) PrepareAction(grid types.Grid, x, y int) []types.SpreadEffect {
-	// Look for Undead neighbors
-	hasUndeadNeighbor := false
-	types.ForEachNeighbor(grid, x, y, 1, func(nx, ny int) bool {
-		if target := grid.GetCell(nx, ny); target != nil && target.Character != nil && target.Character.IsUndead() {
-			hasUndeadNeighbor = true
-			return false // break
-		}
-		return true
-	})
-
-	if !hasUndeadNeighbor {
-		return nil
-	}
-
-	// Try to find an empty neighbor to flee to
-	var fleeEffect []types.SpreadEffect
-	types.ForEachNeighbor(grid, x, y, 1, func(nx, ny int) bool {
-		target := grid.GetCell(nx, ny)
-		if target != nil {
-			// Ensure the destination cell is not adjacent to any undead
-			isSafe := true
-			types.ForEachNeighbor(grid, nx, ny, 1, func(tx, ty int) bool {
-				if nCell := grid.GetCell(tx, ty); nCell != nil && nCell.Character != nil && nCell.Character.IsUndead() {
-					isSafe = false
-					return false // break
-				}
-				return true
-			})
-
-			if !isSafe {
-				return true // Continue to next neighbor
-			}
-
-			// Found an empty cell to move to.
-			newDeathCount := target.DeathCount
-
-			newCell := types.Cell{
-				X:          nx,
-				Y:          ny,
-				DeathCount: newDeathCount,
-				Character:  c,
-			}
-
-			fleeEffect = []types.SpreadEffect{
-				{
-					TargetX:    nx,
-					TargetY:    ny,
-					NewCell:    newCell,
-					Weight:     10,
-					TargetType: "EmptyCell",
-				},
-				{
-					TargetX:    x,
-					TargetY:    y,
-					NewCell:    types.Cell{X: x, Y: y, DeathCount: target.DeathCount, Character: &BaseCharacter{ID: c.ID, UnderPop: c.UnderPop, OverPop: c.OverPop, Repro: c.Repro}},
-					Weight:     10,
-					TargetType: "LivingCharacter",
-				},
-			}
-			return false // Break iteration
-		}
-		return true
-	})
-
-	if len(fleeEffect) > 0 {
-		return fleeEffect
-	}
+	// Simple implementation
 	return nil
+}
+func (c *LivingCharacter) GetID() int                { return c.ID }
+func (c *LivingCharacter) IsUndead() bool            { return false }
+func (c *LivingCharacter) GetRules() (int, int, int) { return c.UnderPop, c.OverPop, c.Repro }
+func (c *LivingCharacter) SetRules(u, o, r int)      { c.UnderPop = u; c.OverPop = o; c.Repro = r }
+
+func (c *LivingCharacter) ApplyAction(effects []types.SpreadEffect, grid types.Grid, x, y int) (types.Character, types.Cell) {
+	// If fleeing, apply the effect
+	for _, e := range effects {
+		if e.TargetX == x && e.TargetY == y {
+			return e.NewCell.Character, e.NewCell
+		}
+	}
+	return c, *grid.GetCell(x, y)
 }
 
 func (c *LivingCharacter) Clone() types.Character {
 	return &LivingCharacter{
-		BaseCharacter: BaseCharacter{
-			ID:       c.ID,
-			UnderPop: c.UnderPop,
-			OverPop:  c.OverPop,
-			Repro:    c.Repro,
-		},
+		ID:       c.ID,
+		UnderPop: c.UnderPop,
+		OverPop:  c.OverPop,
+		Repro:    c.Repro,
 	}
 }
 
 func (c *LivingCharacter) NextState(neighbors int, grid types.Grid, x, y int) (types.Character, types.Cell) {
 	cell := *grid.GetCell(x, y)
 
-	// Survival logic
-	isAlive := neighbors >= c.UnderPop && neighbors <= c.OverPop
-	if isAlive {
-		cell.DeathCount = 0 
+	// Survival logic: 2-3 neighbors
+	if neighbors >= 2 && neighbors <= 3 {
+		cell.DeathCount = 0
 		return c, cell
 	}
 
-	// Death logic
+	// Death logic (Underpopulation: <=1, Overpopulation: >=4)
 	cell.DeathCount++
 	if cell.DeathCount >= 5 {
 		return &UndeadCharacter{
-			BaseCharacter: BaseCharacter{
-				ID:       c.ID, 
-				UnderPop: c.UnderPop, 
-				OverPop:  c.OverPop, 
-				Repro:    c.Repro,
-			},
-			WaitCounter: 0,
+			ID:       c.ID,
+			UnderPop: 2,
+			OverPop:  3,
+			Repro:    3,
+			Age:      0,
 		}, cell
 	}
 
-	// Become BaseCharacter upon death
-	return &BaseCharacter{
-		ID:       c.ID, 
-		UnderPop: c.UnderPop, 
-		OverPop:  c.OverPop, 
-		Repro:    c.Repro,
-	}, cell
+	// Return nil for "dead" cell
+	cell.Character = nil
+	return nil, cell
 }

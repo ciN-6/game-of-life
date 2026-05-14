@@ -17,19 +17,31 @@ When the simulation steps once
       | 4 | 5 |
       | 5 | 5 |
 
-  Scenario: Reproduction
+  Scenario: Reproduction with 2 neighbors
     Given a grid with living characters at:
       | x | y |
       | 4 | 4 |
       | 4 | 5 |
-      | 5 | 5 |  
+    When the simulation steps once
+    Then the following characters should be dead:
+      | x | y |
+      | 4 | 4 |
+      | 4 | 5 |
+
+  Scenario: Reproduction with 3 neighbors
+    Given a grid with living characters at:
+      | x | y |
+      | 4 | 4 |
+      | 4 | 5 |
+      | 5 | 5 |
     When the simulation steps once
     Then the following characters should be alive:
       | x | y |
       | 4 | 4 |
       | 4 | 5 |
-      | 5 | 5 |  
       | 5 | 5 |
+      | 5 | 4 |
+      | 4 | 6 |
   
   @stable
   Scenario: Stable population
@@ -70,7 +82,8 @@ When the simulation steps once
       | x | y |
       | 4 | 4 |
       | 4 | 5 |
-      | 4 | 6 |
+      | 5 | 4 |
+      | 5 | 5 |
     When the simulation steps 10 times
     Then the character at 4, 4 should be undead
   
