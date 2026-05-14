@@ -1,5 +1,5 @@
 # Binaries
-*.exe
+*.exe*
 
 # IDE/Editor files
 .vscode/

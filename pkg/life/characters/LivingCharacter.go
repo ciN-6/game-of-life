@@ -25,7 +25,7 @@ func (c *LivingCharacter) PrepareAction(grid types.Grid, x, y int) []types.Sprea
 	// Look for Undead neighbors
 	hasUndeadNeighbor := false
 	types.ForEachNeighbor(grid, x, y, 1, func(nx, ny int) bool {
-		if target := grid.GetCell(nx, ny); target != nil && target.Character.IsUndead() {
+		if target := grid.GetCell(nx, ny); target != nil && target.Character != nil && target.Character.IsUndead() {
 			hasUndeadNeighbor = true
 			return false // break
 		}
@@ -44,7 +44,7 @@ func (c *LivingCharacter) PrepareAction(grid types.Grid, x, y int) []types.Sprea
 			// Ensure the destination cell is not adjacent to any undead
 			isSafe := true
 			types.ForEachNeighbor(grid, nx, ny, 1, func(tx, ty int) bool {
-				if nCell := grid.GetCell(tx, ty); nCell != nil && nCell.Character.IsUndead() {
+				if nCell := grid.GetCell(tx, ty); nCell != nil && nCell.Character != nil && nCell.Character.IsUndead() {
 					isSafe = false
 					return false // break
 				}
@@ -106,19 +106,32 @@ func (c *LivingCharacter) Clone() types.Character {
 func (c *LivingCharacter) NextState(neighbors int, grid types.Grid, x, y int) (types.Character, types.Cell) {
 	cell := *grid.GetCell(x, y)
 
-	// Simplified survival logic for now
+	// Survival logic
 	isAlive := neighbors >= c.UnderPop && neighbors <= c.OverPop
 	if isAlive {
+		cell.DeathCount = 0 
 		return c, cell
 	}
 
-	// Death: Character becomes Undead if death threshold is reached
+	// Death logic
 	cell.DeathCount++
 	if cell.DeathCount >= 5 {
-		// Proper way to create a new UndeadCharacter from existing BaseCharacter
-		return &UndeadCharacter{BaseCharacter: BaseCharacter{ID: c.ID, UnderPop: c.UnderPop, OverPop: c.OverPop, Repro: c.Repro}, WaitCounter: 0}, cell
+		return &UndeadCharacter{
+			BaseCharacter: BaseCharacter{
+				ID:       c.ID, 
+				UnderPop: c.UnderPop, 
+				OverPop:  c.OverPop, 
+				Repro:    c.Repro,
+			},
+			WaitCounter: 0,
+		}, cell
 	}
 
-	// Become BaseCharacter upon death, reusing rules
-	return &BaseCharacter{ID: c.ID, UnderPop: c.UnderPop, OverPop: c.OverPop, Repro: c.Repro}, cell
+	// Become BaseCharacter upon death
+	return &BaseCharacter{
+		ID:       c.ID, 
+		UnderPop: c.UnderPop, 
+		OverPop:  c.OverPop, 
+		Repro:    c.Repro,
+	}, cell
 }

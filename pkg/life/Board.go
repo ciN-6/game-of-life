@@ -36,7 +36,7 @@ func NewGrid(width, height int) *Board {
 				X:          x,
 				Y:          y,
 				DeathCount: 0,
-				Character:  &characters.BaseCharacter{ID: nextID(), UnderPop: 2, OverPop: 3, Repro: 3},
+				Character:  nil,
 			}
 		}
 	}
@@ -49,7 +49,13 @@ func (board *Board) SetAlive(x, y int, alive bool) {
 		return
 	}
 	idx := y*board.width + x
-	u, o, r := board.Cells[idx].Character.GetRules()
+	
+	// Default rules if no character exists
+	u, o, r := 2, 3, 3
+	if board.Cells[idx].Character != nil {
+		u, o, r = board.Cells[idx].Character.GetRules()
+	}
+
 	if alive {
 		board.Cells[idx] = types.Cell{
 			X:          x,
@@ -73,6 +79,9 @@ func (board *Board) GetAlive(x, y int) bool {
 		return false
 	}
 	cell := board.Cells[y*board.width+x]
+	if cell.Character == nil {
+		return false
+	}
 	_, isLiving := cell.Character.(*characters.LivingCharacter)
 	return isLiving
 }
@@ -99,6 +108,9 @@ func (board *Board) Step() {
 	for y := 0; y < board.height; y++ {
 		for x := 0; x < board.width; x++ {
 			cell := board.Cells[y*board.width+x]
+			if cell.Character == nil {
+				continue
+			}
 			cellEffects := cell.Character.PrepareAction(board, x, y)
 			for _, e := range cellEffects {
 				if e.TargetX >= 0 && e.TargetX < board.width && e.TargetY >= 0 && e.TargetY < board.height {
@@ -112,12 +124,26 @@ func (board *Board) Step() {
 	// 2. Apply Action
 	applied := make([]types.Cell, len(board.Cells))
 	for i := range board.Cells {
-		char, cell := board.Cells[i].Character.ApplyAction(effects[i], board, i%board.width, i/board.width)
+		char := board.Cells[i].Character
+		var newChar types.Character
+		var newCell types.Cell
+		if char == nil {
+			// Apply effects to empty cell
+			if len(effects[i]) > 0 {
+				newChar = effects[i][0].NewCell.Character
+				newCell = board.Cells[i]
+			} else {
+				newChar = nil
+				newCell = board.Cells[i]
+			}
+		} else {
+			newChar, newCell = char.ApplyAction(effects[i], board, i%board.width, i/board.width)
+		}
 		applied[i] = types.Cell{
 			X:          board.Cells[i].X,
 			Y:          board.Cells[i].Y,
-			DeathCount: cell.DeathCount,
-			Character:  char,
+			DeathCount: newCell.DeathCount,
+			Character:  newChar,
 		}
 	}
 
@@ -127,12 +153,37 @@ func (board *Board) Step() {
 		for x := 0; x < board.width; x++ {
 			idx := y*board.width + x
 			neighbors := board.countNeighbors(x, y)
-			char, cell := applied[idx].Character.NextState(neighbors, board, x, y)
+			char := applied[idx].Character
+			var nextChar types.Character
+			var nextCell types.Cell
+			
+			// Default character rules for empty cells
+			var defaultChar = &characters.BaseCharacter{ID: nextID(), UnderPop: 2, OverPop: 3, Repro: 3}
+			
+			if char == nil {
+				// Potential reproduction
+				if neighbors == 3 {
+					// Use a new character for the new life form
+					nextChar = &characters.LivingCharacter{BaseCharacter: *defaultChar}
+				} else {
+					nextChar = nil
+				}
+				nextCell = applied[idx]
+			} else {
+				// Character exists: handle state and death transition
+				nextChar, nextCell = char.NextState(neighbors, board, x, y)
+				
+				// Handle potential death-to-undead transition if not handled by NextState
+				if _, isBase := nextChar.(*characters.BaseCharacter); isBase && nextCell.DeathCount >= 5 {
+					nextChar = &characters.UndeadCharacter{BaseCharacter: *nextChar.(*characters.BaseCharacter), WaitCounter: 0}
+				}
+			}
+			
 			next[idx] = types.Cell{
 				X:          x,
 				Y:          y,
-				DeathCount: cell.DeathCount,
-				Character:  char,
+				DeathCount: nextCell.DeathCount,
+				Character:  nextChar,
 			}
 		}
 	}
@@ -181,12 +232,11 @@ func (board *Board) Clear() {
 	for y := 0; y < board.height; y++ {
 		for x := 0; x < board.width; x++ {
 			idx := y*board.width + x
-			u, o, r := board.Cells[idx].Character.GetRules()
 			board.Cells[idx] = types.Cell{
 				X:          x,
 				Y:          y,
 				DeathCount: 0,
-				Character:  &characters.BaseCharacter{ID: nextID(), UnderPop: u, OverPop: o, Repro: r},
+				Character:  nil,
 			}
 		}
 	}
