@@ -13,8 +13,49 @@ func (c *LivingCharacter) GetColor() (uint8, uint8, uint8, uint8) {
 }
 
 func (c *LivingCharacter) PrepareAction(board *Board, x, y int) []SpreadEffect {
-	// Simple implementation
-	return nil
+	var effects []SpreadEffect
+
+	// 1. Scan for Undead neighbors
+	hasUndead := false
+	board.ForEachNeighbor(x, y, 1, func(nx, ny int) {
+		target := board.GetCell(nx, ny)
+		if target != nil && target.Character != nil && target.Character.IsUndead() {
+			hasUndead = true
+		}
+	})
+
+	if !hasUndead {
+		return nil
+	}
+
+	// 2. Find empty adjacent cell
+	var emptyCell *Cell
+	board.ForEachNeighbor(x, y, 1, func(nx, ny int) {
+		target := board.GetCell(nx, ny)
+		if target != nil && target.Character == nil {
+			emptyCell = target
+		}
+	})
+
+	// 3. Create movement effect
+	if emptyCell != nil {
+		newCell := Cell{
+			X:          emptyCell.X,
+			Y:          emptyCell.Y,
+			DeathCount: 0,
+			Character:  c,
+		}
+		effects = append(effects, SpreadEffect{
+			TargetX:    emptyCell.X,
+			TargetY:    emptyCell.Y,
+			SourceX:    x,
+			SourceY:    y,
+			NewCell:    newCell,
+			Weight:     1,
+			TargetType: "LivingCharacter",
+		})
+	}
+	return effects
 }
 func (c *LivingCharacter) GetID() int                { return c.ID }
 func (c *LivingCharacter) IsUndead() bool            { return false }
