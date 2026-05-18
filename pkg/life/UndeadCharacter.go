@@ -25,29 +25,28 @@ func (c *UndeadCharacter) Clone() Character {
 	}
 }
 
-func (c *UndeadCharacter) ApplyAction(effects []SpreadEffect, grid Grid, x, y int) (Character, Cell) {
+func (c *UndeadCharacter) ApplyAction(effects []SpreadEffect, board *Board, x, y int) (Character, Cell) {
 	for _, e := range effects {
 		if e.TargetX == x && e.TargetY == y {
 			return e.NewCell.Character, e.NewCell
 		}
 	}
-	return c, *grid.GetCell(x, y)
+	return c, *board.GetCell(x, y)
 }
 
-func (c *UndeadCharacter) NextState(neighbors int, grid Grid, x, y int) (Character, Cell) {
-	cell := *grid.GetCell(x, y)
+func (c *UndeadCharacter) NextState(neighbors int, board *Board, x, y int) (Character, Cell) {
+	cell := *board.GetCell(x, y)
 
 	// Undead characters are persistent and do not change state
 	// or age based on standard neighbor rules.
 	return c, cell
 }
 
-func (c *UndeadCharacter) PrepareAction(grid Grid, x, y int) []SpreadEffect {
+func (c *UndeadCharacter) PrepareAction(board *Board, x, y int) []SpreadEffect {
 	// Infect neighbors logic
 	var effects []SpreadEffect
-	// Note: ForEachNeighbor is still a global function in Grid.go for now
-	ForEachNeighbor(grid, x, y, 1, func(nx, ny int) {
-		target := grid.GetCell(nx, ny)
+	board.ForEachNeighbor(x, y, 1, func(nx, ny int) {
+		target := board.GetCell(nx, ny)
 		if target != nil {
 			if _, ok := target.Character.(*LivingCharacter); ok {
 				victimID := target.Character.GetID()

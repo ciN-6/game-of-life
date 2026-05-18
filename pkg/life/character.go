@@ -6,11 +6,11 @@ type Character interface {
 	// GetID returns the unique identifier of the character.
 	GetID() int
 	// NextState calculates the next generation based on neighbor count and cell info.
-	NextState(neighbors int, grid Grid, x, y int) (Character, Cell)
+	NextState(neighbors int, board *Board, x, y int) (Character, Cell)
 	// ApplyAction resolves potential state changes from surrounding characters' effects.
-	ApplyAction(effects []SpreadEffect, grid Grid, x, y int) (Character, Cell)
+	ApplyAction(effects []SpreadEffect, board *Board, x, y int) (Character, Cell)
 	// PrepareAction generates effects to propagate to adjacent cells.
-	PrepareAction(grid Grid, x, y int) []SpreadEffect
+	PrepareAction(board *Board, x, y int) []SpreadEffect
 	// IsUndead returns whether this character type is undead (persists across generations).
 	IsUndead() bool
 	// GetRules returns the character's rule set (UnderPop, OverPop, Repro).

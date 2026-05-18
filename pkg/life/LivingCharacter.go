@@ -12,7 +12,7 @@ func (c *LivingCharacter) GetColor() (uint8, uint8, uint8, uint8) {
 	return 0, 255, 255, 255 // Cyan when alive
 }
 
-func (c *LivingCharacter) PrepareAction(grid Grid, x, y int) []SpreadEffect {
+func (c *LivingCharacter) PrepareAction(board *Board, x, y int) []SpreadEffect {
 	// Simple implementation
 	return nil
 }
@@ -21,14 +21,14 @@ func (c *LivingCharacter) IsUndead() bool            { return false }
 func (c *LivingCharacter) GetRules() (int, int, int) { return c.UnderPop, c.OverPop, c.Repro }
 func (c *LivingCharacter) SetRules(u, o, r int)      { c.UnderPop = u; c.OverPop = o; c.Repro = r }
 
-func (c *LivingCharacter) ApplyAction(effects []SpreadEffect, grid Grid, x, y int) (Character, Cell) {
+func (c *LivingCharacter) ApplyAction(effects []SpreadEffect, board *Board, x, y int) (Character, Cell) {
 	// If fleeing, apply the effect
 	for _, e := range effects {
 		if e.TargetX == x && e.TargetY == y {
 			return e.NewCell.Character, e.NewCell
 		}
 	}
-	return c, *grid.GetCell(x, y)
+	return c, *board.GetCell(x, y)
 }
 
 func (c *LivingCharacter) Clone() Character {
@@ -40,8 +40,8 @@ func (c *LivingCharacter) Clone() Character {
 	}
 }
 
-func (c *LivingCharacter) NextState(neighbors int, grid Grid, x, y int) (Character, Cell) {
-	cell := *grid.GetCell(x, y)
+func (c *LivingCharacter) NextState(neighbors int, board *Board, x, y int) (Character, Cell) {
+	cell := *board.GetCell(x, y)
 
 	// Survival logic: Lives if neighbors are within the UnderPop and OverPop bounds.
 	if neighbors >= c.UnderPop && neighbors <= c.OverPop {
