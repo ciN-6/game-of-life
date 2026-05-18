@@ -1,8 +1,7 @@
-# Project: Go-Life (Conway's Game of Life)
+# Project: Go-Life (Simulation)
 
 ## Personas & Roles
 
-<<<<<<< Updated upstream
 - **Project Owner (PO)**: Responsible for task planning, prioritizing the backlog, and verifying the Definition of Done (DoD). Invoke this role when planning features, managing task backlogs, or closing tasks. When receiving a feature request, the PO delegates to the Designer.
 - **Designer**: Highly organized role responsible for documenting and maintaining business rules in the GitHub Wiki. Responsibilities include checking for inconsistencies, adding or modifying requirements in the wiki, and redacting specifications for the Senior Software Engineer.
 - **QA Engineer (QA)**: Responsible for Behavior-Driven Development (BDD), writing Gherkin feature files, and ensuring full specification adherence. Invoke this role for testing, QA, and feature validation.
@@ -13,10 +12,7 @@
 - **Project Owner (PO)**: Uses the Designer's output to build a strategic plan. The PO is responsible for writing tasks on the GitHub board that serve as the foundation for implementation.
 - **Senior Software Engineer**: Implements issues one at a time. For every task, the engineer must create a new git branch, implement the code changes, and create a Pull Request (PR).
 - **QA Engineer (QA)**: Takes the PR and creates BDD test cases based on the task at hand. QA pushes these tests to the same branch to update the PR and verify the implementation.
->>>>>>> Stashed changes
 
-
-<<<<<<< Updated upstream
 =======
 Every non-trivial change must follow this strict sequence:
 1. **Design**: Designer plans the changes and updates the Wiki with final business rules.
@@ -24,7 +20,7 @@ Every non-trivial change must follow this strict sequence:
 3. **Implementation**: Senior Software Engineer takes a task, creates a new branch, implements the changes, and opens a PR.
 4. **Validation**: QA takes the PR, creates BDD test cases, and pushes them to the same branch.
 5. **Review & Merge**: Orchestrator verifies the DoD is met before the PR is merged.
->>>>>>> Stashed changes
+
 
 ## Project Structure
 - `/cmd/go-life/`: Entry point (main.go).
@@ -33,9 +29,6 @@ Every non-trivial change must follow this strict sequence:
 - `README.md`: Setup and usage instructions.
 
 ## Development Tasks
-- When "refactor" is mentioned, focus on improving the neighbor-counting efficiency.
+- When "refactor" is mentioned, you must orchestrate the full workflow.
 - When "test" is mentioned, generate table-driven unit tests for the core rules.
-
-## command line
-- always use powershell when interacting with the terminal.
 

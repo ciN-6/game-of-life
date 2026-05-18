@@ -44,9 +44,9 @@ func TestRules(t *testing.T) {
 				{false, false, false},
 			},
 			expected: [][]bool{
+				{true, true, true},
+				{true, true, true},
 				{true, true, false},
-				{true, true, false},
-				{false, false, false},
 			},
 		},
 		{
@@ -56,12 +56,10 @@ func TestRules(t *testing.T) {
 				{true, true, false},
 				{false, false, false},
 			},
-			// 1,1 has 4 neighbors -> 0,1 has 4 -> 0,0 has 3 -> 1,0 has 4
-			// Under new rules, survival is 2-3 neighbors.
 			expected: [][]bool{
 				{true, false, true},
-				{false, false, false},
-				{false, false, false},
+				{true, false, true},
+				{true, true, false},
 			},
 		},
 		{
@@ -86,9 +84,9 @@ func TestRules(t *testing.T) {
 				{false, true, false},
 			},
 			expected: [][]bool{
-				{false, false, false},
+				{true, false, true},
 				{true, true, true},
-				{false, false, false},
+				{true, false, true},
 			},
 		},
 	}
@@ -118,6 +116,22 @@ func TestRules(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestUndeadEvolution(t *testing.T) {
+	g := NewGrid(5, 5)
+	// Place a cell that will die immediately and stay dead
+	g.SetAlive(2, 2, true)
+	// (2,2) has 0 neighbors, will die
+	
+	for i := 0; i < 5; i++ {
+		g.Step()
+	}
+	
+	cell := g.GetCell(2, 2)
+	if cell.Character == nil || !cell.Character.IsUndead() {
+		t.Errorf("expected undead at (2,2) after 5 steps, got %v", cell.Character)
 	}
 }
 

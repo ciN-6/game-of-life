@@ -2,8 +2,6 @@
 package life
 
 import (
-	"game-of-life/pkg/life/characters"
-	"game-of-life/pkg/life/types"
 	"sync/atomic"
 )
 
@@ -18,8 +16,8 @@ const MaxHistory = 10
 // Board represents the simulation grid.
 type Board struct {
 	width, height int
-	Cells         []types.Cell
-	history       [][]types.Cell
+	Cells         []Cell
+	history       [][]Cell
 	activeCells   []int
 }
 
@@ -28,13 +26,13 @@ func NewGrid(width, height int) *Board {
 	board := &Board{
 		width:       width,
 		height:      height,
-		Cells:       make([]types.Cell, width*height),
+		Cells:       make([]Cell, width*height),
 		activeCells: []int{},
 	}
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			idx := y*width + x
-			board.Cells[idx] = types.Cell{
+			board.Cells[idx] = Cell{
 				X:          x,
 				Y:          y,
 				DeathCount: 0,
@@ -50,36 +48,35 @@ func (board *Board) SetAlive(x, y int, alive bool) {
 	if x < 0 || x >= board.width || y < 0 || y >= board.height {
 		return
 	}
-	idx := y*board.width + x
-
-	// Default rules if no character exists
-	u, o, r := 2, 3, 3
-	if board.Cells[idx].Character != nil {
-		u, o, r = board.Cells[idx].Character.GetRules()
-	}
-
-	hadCharacter := board.Cells[idx].Character != nil
 
 	if alive {
-		board.Cells[idx] = types.Cell{
-			X:          x,
-			Y:          y,
-			DeathCount: board.Cells[idx].DeathCount,
-			Character:  &characters.LivingCharacter{ID: nextID(), UnderPop: u, OverPop: o, Repro: r},
+		// Maintain existing rules if character is already present
+		u, o, r := 2, 3, 3
+		if char := board.Cells[y*board.width+x].Character; char != nil {
+			u, o, r = char.GetRules()
 		}
+		board.SetCharacter(x, y, &LivingCharacter{ID: nextID(), UnderPop: u, OverPop: o, Repro: r})
+	} else {
+		board.SetCharacter(x, y, nil)
+	}
+}
+
+// SetCharacter assigns a character to a specific coordinate and updates the active cell list.
+func (board *Board) SetCharacter(x, y int, char Character) {
+	if x < 0 || x >= board.width || y < 0 || y >= board.height {
+		return
+	}
+	idx := y*board.width + x
+	hadCharacter := board.Cells[idx].Character != nil
+
+	board.Cells[idx].Character = char
+
+	if char != nil {
 		if !hadCharacter {
 			board.activeCells = append(board.activeCells, idx)
 		}
-	} else {
-		board.Cells[idx] = types.Cell{
-			X:          x,
-			Y:          y,
-			DeathCount: board.Cells[idx].DeathCount,
-			Character:  nil,
-		}
-		if hadCharacter {
-			board.removeFromActiveCells(idx)
-		}
+	} else if hadCharacter {
+		board.removeFromActiveCells(idx)
 	}
 }
 
@@ -110,20 +107,34 @@ func (board *Board) GetAlive(x, y int) bool {
 	if cell.Character == nil {
 		return false
 	}
-	_, isLiving := cell.Character.(*characters.LivingCharacter)
+	_, isLiving := cell.Character.(*LivingCharacter)
 	return isLiving
 }
 
 // countNeighbors returns the number of live neighbors for a cell at (x, y).
 func (board *Board) countNeighbors(x, y int) int {
 	count := 0
-	types.ForEachNeighbor(board, x, y, 1, func(nx, ny int) bool {
+	board.ForEachNeighbor(x, y, 1, func(nx, ny int) {
 		if board.GetAlive(nx, ny) {
 			count++
 		}
-		return true
 	})
 	return count
+}
+
+// ForEachNeighbor calls fn for each neighbor of (x, y) within grid bounds within the specified radius.
+func (board *Board) ForEachNeighbor(x, y, radius int, fn func(nx, ny int)) {
+	for dy := -radius; dy <= radius; dy++ {
+		for dx := -radius; dx <= radius; dx++ {
+			if dx == 0 && dy == 0 {
+				continue
+			}
+			nx, ny := x+dx, y+dy
+			if nx >= 0 && nx < board.width && ny >= 0 && ny < board.height {
+				fn(nx, ny)
+			}
+		}
+	}
 }
 
 // Step advances the simulation by one generation.
@@ -138,8 +149,8 @@ func (board *Board) Step() {
 	board.activeCells = nextActiveCells
 }
 
-func (board *Board) collectIntent() map[int][]types.SpreadEffect {
-	effects := make(map[int][]types.SpreadEffect)
+func (board *Board) collectIntent() map[int][]SpreadEffect {
+	effects := make(map[int][]SpreadEffect)
 	for _, idx := range board.activeCells {
 		cell := board.Cells[idx]
 		// Character should not be nil if activeCells is maintained correctly
@@ -157,25 +168,29 @@ func (board *Board) collectIntent() map[int][]types.SpreadEffect {
 	return effects
 }
 
-func (board *Board) applyActions(effects map[int][]types.SpreadEffect) []types.Cell {
-	applied := make([]types.Cell, len(board.Cells))
+func (board *Board) applyActions(effects map[int][]SpreadEffect) []Cell {
+	applied := make([]Cell, len(board.Cells))
 	for i := range board.Cells {
 		char := board.Cells[i].Character
-		var newChar types.Character
-		var newCell types.Cell
-		if char == nil {
-			// Apply effects to empty cell
-			if len(effects[i]) > 0 {
-				newChar = effects[i][0].NewCell.Character
-				newCell = board.Cells[i]
-			} else {
-				newChar = nil
-				newCell = board.Cells[i]
-			}
-		} else {
+		var newChar Character
+		var newCell Cell
+
+		if char != nil {
 			newChar, newCell = char.ApplyAction(effects[i], board, i%board.width, i/board.width)
+		} else {
+			// Handle effects on empty cells (e.g., reproduction by spread or infection)
+			newChar = nil
+			newCell = board.Cells[i]
+			for _, e := range effects[i] {
+				if e.TargetX == i%board.width && e.TargetY == i/board.width {
+					newChar = e.NewCell.Character
+					newCell = e.NewCell
+					break
+				}
+			}
 		}
-		applied[i] = types.Cell{
+
+		applied[i] = Cell{
 			X:          board.Cells[i].X,
 			Y:          board.Cells[i].Y,
 			DeathCount: newCell.DeathCount,
@@ -185,40 +200,52 @@ func (board *Board) applyActions(effects map[int][]types.SpreadEffect) []types.C
 	return applied
 }
 
-func (board *Board) calculateNextState(applied []types.Cell) ([]types.Cell, []int) {
-	next := make([]types.Cell, len(board.Cells))
+func (board *Board) calculateNextState(applied []Cell) ([]Cell, []int) {
+	next := make([]Cell, len(board.Cells))
+	copy(next, applied)
+
+	candidates := make(map[int]struct{})
+	for _, idx := range board.activeCells {
+		candidates[idx] = struct{}{}
+		cell := board.Cells[idx]
+		board.ForEachNeighbor(cell.X, cell.Y, 1, func(nx, ny int) {
+			candidates[ny*board.width+nx] = struct{}{}
+		})
+	}
+
 	nextActiveCells := []int{}
-	for y := 0; y < board.height; y++ {
-		for x := 0; x < board.width; x++ {
-			idx := y*board.width + x
-			neighbors := board.countNeighbors(x, y)
-			char := applied[idx].Character
-			var nextChar types.Character
-			var nextCell types.Cell
+	for idx := range candidates {
+		x, y := idx%board.width, idx/board.width
+		neighbors := board.countNeighbors(x, y)
+		char := applied[idx].Character
+		var nextChar Character
+		var nextCell Cell
 
-			if char == nil {
-				// Reproduction rule: if 2-3 neighbors, spawn a new cell
-				if neighbors >= 2 && neighbors <= 3 {
-					// Use a new character for the new life form
-					nextChar = &characters.LivingCharacter{ID: nextID(), UnderPop: 2, OverPop: 3, Repro: 3}
-				} else {
-					nextChar = nil
-				}
-				nextCell = applied[idx]
+		if char != nil {
+			nextChar, nextCell = char.NextState(neighbors, board, x, y)
+		} else {
+			// Reproduction rule: if neighbors is 2 or 3, spawn a new cell
+			if neighbors >= 2 && neighbors <= 3 {
+				nextChar = &LivingCharacter{ID: nextID(), UnderPop: 2, OverPop: 3, Repro: 3}
 			} else {
-				// Character exists: handle state and death transition
-				nextChar, nextCell = char.NextState(neighbors, board, x, y)
+				nextChar = nil
 			}
+			nextCell = applied[idx]
+		}
 
-			next[idx] = types.Cell{
-				X:          x,
-				Y:          y,
-				DeathCount: nextCell.DeathCount,
-				Character:  nextChar,
+		if nextChar != nil {
+			// Assign ID if it's a new LivingCharacter
+			if lc, ok := nextChar.(*LivingCharacter); ok && lc.ID == -1 {
+				lc.ID = nextID()
 			}
-			if nextChar != nil {
-				nextActiveCells = append(nextActiveCells, idx)
-			}
+			nextActiveCells = append(nextActiveCells, idx)
+		}
+
+		next[idx] = Cell{
+			X:          x,
+			Y:          y,
+			DeathCount: nextCell.DeathCount,
+			Character:  nextChar,
 		}
 	}
 	return next, nextActiveCells
@@ -226,7 +253,7 @@ func (board *Board) calculateNextState(applied []types.Cell) ([]types.Cell, []in
 
 // saveSnapshot saves the current board state to history.
 func (board *Board) saveSnapshot() {
-	snapshot := make([]types.Cell, len(board.Cells))
+	snapshot := make([]Cell, len(board.Cells))
 	copy(snapshot, board.Cells)
 	board.history = append(board.history, snapshot)
 
@@ -249,7 +276,7 @@ func (board *Board) Undo() {
 }
 
 // GetCell returns the cell structure at the given coordinates.
-func (board *Board) GetCell(x, y int) *types.Cell {
+func (board *Board) GetCell(x, y int) *Cell {
 	if x < 0 || x >= board.width || y < 0 || y >= board.height {
 		return nil
 	}
@@ -267,7 +294,7 @@ func (board *Board) Clear() {
 	for y := 0; y < board.height; y++ {
 		for x := 0; x < board.width; x++ {
 			idx := y*board.width + x
-			board.Cells[idx] = types.Cell{
+			board.Cells[idx] = Cell{
 				X:          x,
 				Y:          y,
 				DeathCount: 0,
@@ -282,7 +309,7 @@ func (board *Board) Clear() {
 func (board *Board) CountAlive() int {
 	count := 0
 	for _, cell := range board.Cells {
-		if _, isLiving := cell.Character.(*characters.LivingCharacter); isLiving {
+		if _, isLiving := cell.Character.(*LivingCharacter); isLiving {
 			count++
 		}
 	}

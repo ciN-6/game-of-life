@@ -1,6 +1,6 @@
 module game-of-life
 
-go 1.26.3
+go 1.26.3 // Replace with your actual local 'go version'
 
 require (
 	github.com/cucumber/godog v0.15.1
