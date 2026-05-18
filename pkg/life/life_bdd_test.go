@@ -91,9 +91,11 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 }
 
 func (c *simulationContext) aGridWithAnUndeadcharacterAt(x, y int) error {
-	c.grid = life.NewGrid(10, 10)
+	if c.grid == nil {
+		c.grid = life.NewGrid(10, 10)
+	}
 	undead := &life.UndeadCharacter{ID: 1, UnderPop: 2, OverPop: 3, Repro: 3, Age: 0}
-	c.grid.Cells[y*10+x] = life.Cell{X: x, Y: y, DeathCount: 0, Character: undead}
+	c.grid.SetCharacter(x, y, undead)
 	return nil
 }
 

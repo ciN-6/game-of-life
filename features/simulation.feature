@@ -101,3 +101,11 @@ Feature: Game of Life Simulation
     Given a grid with an undead character at 4, 4
     When the simulation steps 1 times
     Then the character at 4, 3 should be dead
+
+  Scenario: Undead infection
+    Given a grid with living characters at:
+      | x | y |
+      | 4 | 4 |
+    And a grid with an undead character at 4, 5
+    When the simulation steps once
+    Then the character at 4, 4 should be undead
