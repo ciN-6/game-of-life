@@ -1,6 +1,5 @@
-# Go-Life: Conway’s Game of Life
-
-A performant, extensible implementation of Conway’s Game of Life in Go, featuring a graphical UI (Ebiten), custom character types, and robust test coverage.
+# Go-Life
+A performant, extensible simulation engine in Go, featuring a graphical UI (Ebiten), custom character types, and robust test coverage.
 
 ## Features
 

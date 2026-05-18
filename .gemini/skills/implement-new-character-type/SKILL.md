@@ -1,7 +1,6 @@
 ---
 name: implement-new-character-type
-description: Workflow for implementing new character types in Conway's Game of Life. Use when adding a new character type with unique behavior or attributes.
----
+description: Workflow for implementing new character types in the simulation. Use when adding a new character type with unique behavior or attributes.---
 
 # Implement New character Type
 

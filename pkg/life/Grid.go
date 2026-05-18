@@ -1,5 +1,4 @@
-// Package types defines shared simulation interfaces and structures.
-package types
+package life
 
 // Grid defines the interface for interacting with the simulation board.
 type Grid interface {
@@ -29,8 +28,7 @@ type Cell struct {
 }
 
 // ForEachNeighbor calls fn for each neighbor of (x, y) within grid bounds within the specified radius.
-// If fn returns false, iteration stops early.
-func ForEachNeighbor(grid Grid, x, y, radius int, fn func(nx, ny int) bool) {
+func ForEachNeighbor(grid Grid, x, y, radius int, fn func(nx, ny int)) {
 	for dy := -radius; dy <= radius; dy++ {
 		for dx := -radius; dx <= radius; dx++ {
 			if dx == 0 && dy == 0 {
@@ -38,9 +36,7 @@ func ForEachNeighbor(grid Grid, x, y, radius int, fn func(nx, ny int) bool) {
 			}
 			nx, ny := x+dx, y+dy
 			if nx >= 0 && nx < grid.Width() && ny >= 0 && ny < grid.Height() {
-				if !fn(nx, ny) {
-					return
-				}
+				fn(nx, ny)
 			}
 		}
 	}

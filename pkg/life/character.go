@@ -1,5 +1,5 @@
 // Package types defines shared simulation interfaces and structures.
-package types
+package life
 
 // Character defines the simulation behavior for entities on the board.
 type Character interface {
