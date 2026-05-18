@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"game-of-life/pkg/life"
-	"game-of-life/pkg/life/characters"
-	"game-of-life/pkg/life/types"
 
 	"github.com/cucumber/godog"
 )
@@ -90,12 +88,36 @@ func InitializeScenario(sc *godog.ScenarioContext) {
 	sc.Step(`^a grid with living characters at:$`, ctx.aGridWithLivingcharactersAt)
 	sc.Step(`^the following characters should be alive:$`, ctx.theFollowingcharactersShouldBeAlive)
 	sc.Step(`^the following characters should be dead:$`, ctx.theFollowingcharactersShouldBeDead)
+	sc.Step(`^the cell at (\d+), (\d+) should have (\d+) neighbors$`, ctx.theCellAtShouldHaveNeighbors)
+}
+
+func (c *simulationContext) theCellAtShouldHaveNeighbors(x, y, expected int) error {
+	// We need to use unexported countNeighbors or just ForEachNeighbor
+	// Since countNeighbors is unexported, we'll re-implement it or use a trick
+	// Wait, countNeighbors IS in the same package (life_test) but unexported?
+	// No, life_bdd_test.go is package life_test.
+	// But Board.go is package life.
+	// So unexported methods are not visible.
+	
+	count := 0
+	c.grid.ForEachNeighbor(x, y, 1, func(nx, ny int) {
+		if c.grid.GetAlive(nx, ny) {
+			count++
+		}
+	})
+	
+	if count != expected {
+		return fmt.Errorf("expected %d neighbors at (%d,%d), but got %d", expected, x, y, count)
+	}
+	return nil
 }
 
 func (c *simulationContext) aGridWithAnUndeadcharacterAt(x, y int) error {
-	c.grid = life.NewGrid(10, 10)
-	undead := &characters.UndeadCharacter{ID: 1, UnderPop: 2, OverPop: 3, Repro: 3, Age: 0}
-	c.grid.Cells[y*10+x] = types.Cell{X: x, Y: y, DeathCount: 0, Character: undead}
+	if c.grid == nil {
+		c.grid = life.NewGrid(10, 10)
+	}
+	undead := &life.UndeadCharacter{ID: 1, UnderPop: 2, OverPop: 3, Repro: 3, Age: 0}
+	c.grid.SetCharacter(x, y, undead)
 	return nil
 }
 
