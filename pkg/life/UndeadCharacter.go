@@ -9,11 +9,21 @@ type UndeadCharacter struct {
 	Age      int
 }
 
-func (c *UndeadCharacter) GetID() int                             { return c.ID }
-func (c *UndeadCharacter) IsUndead() bool                         { return true }
-func (c *UndeadCharacter) GetRules() (int, int, int)              { return c.UnderPop, c.OverPop, c.Repro }
-func (c *UndeadCharacter) SetRules(u, o, r int)                   { c.UnderPop = u; c.OverPop = o; c.Repro = r }
-func (c *UndeadCharacter) GetColor() (uint8, uint8, uint8, uint8) { return 255, 0, 0, 255 }
+func (c *UndeadCharacter) GetID() int                { return c.ID }
+func (c *UndeadCharacter) IsUndead() bool            { return true }
+func (c *UndeadCharacter) GetRules() (int, int, int) { return c.UnderPop, c.OverPop, c.Repro }
+func (c *UndeadCharacter) SetRules(u, o, r int)      { c.UnderPop = u; c.OverPop = o; c.Repro = r }
+
+func (c *UndeadCharacter) GetColor() Color {
+	startColor := Color{100, 0, 0, 255} // dark-red
+	targetColor := Color{255, 0, 0, 255} // bright-red
+	maxAge := 50.0
+	factor := float64(c.Age) / maxAge
+	if factor > 1.0 {
+		factor = 1.0
+	}
+	return startColor.Interpolate(targetColor, factor)
+}
 
 func (c *UndeadCharacter) Clone() Character {
 	return &UndeadCharacter{
@@ -36,9 +46,9 @@ func (c *UndeadCharacter) ApplyAction(effects []SpreadEffect, board *Board, x, y
 
 func (c *UndeadCharacter) NextState(neighbors int, board *Board, x, y int) (Character, Cell) {
 	cell := *board.GetCell(x, y)
-
-	// Undead characters are persistent and do not change state
-	// or age based on standard neighbor rules.
+	c.Age++
+	// Undead characters are persistent and do not change state based on neighbors,
+	// but they do age.
 	return c, cell
 }
 

@@ -8,8 +8,8 @@ type LivingCharacter struct {
 	Repro    int
 }
 
-func (c *LivingCharacter) GetColor() (uint8, uint8, uint8, uint8) {
-	return 0, 255, 255, 255 // Cyan when alive
+func (c *LivingCharacter) GetColor() Color {
+	return Color{0, 255, 255, 255} // Cyan when alive
 }
 
 func (c *LivingCharacter) PrepareAction(board *Board, x, y int) []SpreadEffect {
@@ -91,13 +91,13 @@ func (c *LivingCharacter) NextState(neighbors int, board *Board, x, y int) (Char
 
 	// Death logic (Underpopulation: <=1, Overpopulation: >=4)
 	cell.DeathCount++
-	if cell.DeathCount >= 5 {
+	if cell.DeathCount >= 2 {
 		return &UndeadCharacter{
 			ID:       c.ID,
 			UnderPop: c.UnderPop,
 			OverPop:  c.OverPop,
 			Repro:    c.Repro,
-			Age:      5,
+			Age:      0, // Start from age 0
 		}, cell
 	}
 

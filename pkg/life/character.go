@@ -17,8 +17,8 @@ type Character interface {
 	GetRules() (int, int, int)
 	// SetRules updates the character's rules.
 	SetRules(u, o, r int)
-	// GetColor returns the RGBA color components for rendering.
-	GetColor() (r, g, b, a uint8)
+	// GetColor returns the color of the character.
+	GetColor() Color
 	// Clone returns a deep copy of the character, preserving its specific type and rules.
 	Clone() Character
 }

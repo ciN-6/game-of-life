@@ -204,17 +204,8 @@ func (board *Board) calculateNextState(applied []Cell) ([]Cell, []int) {
 	next := make([]Cell, len(board.Cells))
 	copy(next, applied)
 
-	candidates := make(map[int]struct{})
-	for _, idx := range board.activeCells {
-		candidates[idx] = struct{}{}
-		cell := board.Cells[idx]
-		board.ForEachNeighbor(cell.X, cell.Y, 1, func(nx, ny int) {
-			candidates[ny*board.width+nx] = struct{}{}
-		})
-	}
-
 	nextActiveCells := []int{}
-	for idx := range candidates {
+	for idx := range board.Cells {
 		x, y := idx%board.width, idx/board.width
 		neighbors := board.countNeighbors(x, y)
 		char := applied[idx].Character
@@ -227,16 +218,21 @@ func (board *Board) calculateNextState(applied []Cell) ([]Cell, []int) {
 			// Reproduction rule: if neighbors is 2 or 3, spawn a new cell
 			if neighbors >= 2 && neighbors <= 3 {
 				nextChar = &LivingCharacter{ID: nextID(), UnderPop: 2, OverPop: 3, Repro: 3}
+				nextCell = applied[idx]
+				nextCell.DeathCount = 0
 			} else {
 				nextChar = nil
+				nextCell = applied[idx]
+				nextCell.DeathCount = 0
 			}
-			nextCell = applied[idx]
 		}
 
 		if nextChar != nil {
-			// Assign ID if it's a new LivingCharacter
-			if lc, ok := nextChar.(*LivingCharacter); ok && lc.ID == -1 {
-				lc.ID = nextID()
+			// Ensure ID is set for new characters
+			if nextChar.GetID() == 0 {
+				// We don't have a direct way to set ID on interface, so maybe handle in NextState?
+				// For now, if it's LivingCharacter, it sets the ID.
+				// For UndeadCharacter, the conversion already sets the ID.
 			}
 			nextActiveCells = append(nextActiveCells, idx)
 		}

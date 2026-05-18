@@ -258,8 +258,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			if cell.Character == nil {
 				c = color.RGBA{0, 0, 0, 255} // Black for empty
 			} else {
-				r, gCol, b, a := cell.Character.GetColor()
-				c = color.RGBA{r, gCol, b, a}
+				col := cell.Character.GetColor()
+				c = color.RGBA{col.R, col.G, col.B, col.A}
 			}
 
 			vector.DrawFilledRect(screen, float32(x*characterSize), float32(y*characterSize), float32(characterSize-1), float32(characterSize-1), c, false)

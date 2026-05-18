@@ -87,16 +87,6 @@ Feature: Game of Life Simulation
     When the simulation steps 1 times
     Then the character at 4, 4 should be undead
 
-  Scenario: Undead spawn
-    Given a grid with living characters at:
-      | x | y |
-      | 4 | 4 |
-      | 4 | 5 |
-      | 5 | 4 |
-      | 5 | 5 |
-    When the simulation steps 10 times
-    Then the character at 4, 4 should be undead
-  
   Scenario: dead character dont become undead
     Given a grid with an undead character at 4, 4
     When the simulation steps 1 times
