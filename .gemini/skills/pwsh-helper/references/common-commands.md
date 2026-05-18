@@ -12,6 +12,11 @@
 
 ## Pipeline & Redirection
 
+- **Command Chaining**:
+  - **Sequential**: `cmd1; cmd2` (Works in 5.1 and 7).
+  - **Conditional (AND)**: `cmd1; if ($?) { cmd2 }` (PowerShell 5.1 equivalent of `&&`).
+  - **Conditional (OR)**: `cmd1; if (-not $?) { cmd2 }` (PowerShell 5.1 equivalent of `||`).
+  - **Note**: `&&` and `||` are only available in **PowerShell 7 (pwsh)**.
 - **No BOM**: In PowerShell 7, `>` and `Out-File` default to UTF-8 without BOM. In 5.1, use `-Encoding UTF8`.
 - **Filtering**: `... | Where-Object { $_.Property -eq "Value" }` (alias: `?`).
 - **Selecting**: `... | Select-Object Property1, Property2`.

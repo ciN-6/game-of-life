@@ -12,9 +12,11 @@ This skill provides expert guidance for using PowerShell 7 (`pwsh`) effectively.
 1. **Prefer PowerShell 7 (pwsh)**: Always assume the user has access to `pwsh`. Avoid legacy Windows PowerShell (5.1) quirks unless specified.
 2. **Idiomatic Pipelining**: Use objects and filters (`Where-Object`, `Select-Object`) instead of complex string parsing (`awk`, `sed`).
 3. **Silent Tools**: When writing scripts for Gemini CLI, use silent or quiet flags (e.g., `npm install --silent`) and ensure commands terminate.
+4. **Command Chaining**: Avoid `&&` and `||` operators when targeting `powershell.exe` (Windows PowerShell 5.1). Use `;` for sequential execution or `if ($?) { ... }` for conditional execution.
 
 ## Quick Reference
 
+- **Command Chaining (5.1 & 7)**: `cmd1; cmd2` (sequential) or `cmd1; if ($?) { cmd2 }` (conditional success).
 - **File Searching**: `Get-ChildItem -Recurse | Select-String "pattern"`
 - **JSON Handling**: `ConvertFrom-Json` and `ConvertTo-Json`
 - **Error Handling**: Use `try { ... } catch { ... }` blocks for robust scripting.
