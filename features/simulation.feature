@@ -109,3 +109,11 @@ Feature: Game of Life Simulation
     And a grid with an undead character at 4, 5
     When the simulation steps once
     Then the character at 4, 4 should be undead
+
+  Scenario: Neighbor counting
+    Given a grid with living characters at:
+      | x | y |
+      | 4 | 4 |
+      | 4 | 5 |
+      | 5 | 4 |
+    Then the cell at 5, 5 should have 3 neighbors
